@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Регистрация</h3>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% for category, msg in messages %}
+                            <div class="alert alert-{{ category }}">{{ msg }}</div>
+                        {% endfor %}
+                    {% endwith %}
+
+                    <p class="text-muted text-center mb-3">
+                        Здравствуйте, <strong>{{ full_name }}</strong>!<br>
+                        <small>Логин: <code>{{ user_login }}</code></small>
+                    </p>
+
+                    <form method="POST" action="{{ url_for('register') }}">
+                        <input type="hidden" name="user_login" value="{{ user_login }}">
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Пароль</label>
+                            <input type="password" class="form-control"
+                                   id="password" name="password"
+                                   required autofocus autocomplete="new-password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password2" class="form-label">Повторите пароль</label>
+                            <input type="password" class="form-control"
+                                   id="password2" name="password2"
+                                   required autocomplete="new-password">
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100">Создать аккаунт</button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('login') }}">← Назад ко входу</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

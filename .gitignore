@@ -1,0 +1,9 @@
+# Временные файлы Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Окружения
+venv/
+env/
+.venv/

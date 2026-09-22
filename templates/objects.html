@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}{{ table_name|capitalize }} · Database Viewer{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="display-5">Таблица: {{ table_name|capitalize }}</h1>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+            ← На главную
+        </a>
+    </div>
+
+    {% if items %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    {% for column in columns %}
+                    <th>{{ column|replace('_', ' ')|title }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.id }}</td>
+                    {% for column in columns %}
+                    <td>{{ item[column] }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="alert alert-info mt-3">
+        <strong>Всего записей:</strong> {{ items|length }}
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        Таблица пуста. Нет данных для отображения.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

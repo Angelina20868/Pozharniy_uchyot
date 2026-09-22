@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Вход</h3>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% for category, msg in messages %}
+                            <div class="alert alert-{{ category }}">{{ msg }}</div>
+                        {% endfor %}
+                    {% endwith %}
+
+                    {% if ask_password %}
+                        {# ---- ШАГ 2: поле пароля, логин уже известен ---- #}
+                        <p class="text-muted text-center mb-3">
+                            Здравствуйте, <strong>{{ full_name }}</strong>!<br>
+                            <small>Логин: <code>{{ user_login }}</code></small>
+                        </p>
+                        <form method="POST" action="{{ url_for('login') }}">
+                            <input type="hidden" name="user_login" value="{{ user_login }}">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Пароль</label>
+                                <input type="password" class="form-control"
+                                       id="password" name="password"
+                                       required autofocus autocomplete="current-password">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Войти</button>
+                        </form>
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('login') }}">← Войти другим пользователем</a>
+                        </div>
+                    {% else %}
+                        {# ---- ШАГ 1: только поле логина ---- #}
+                        <form method="POST" action="{{ url_for('login') }}">
+                            <div class="mb-3">
+                                <label for="user_login" class="form-label">Логин</label>
+                                <input type="text" class="form-control"
+                                       id="user_login" name="user_login"
+                                       required autofocus autocomplete="username">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Продолжить</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
