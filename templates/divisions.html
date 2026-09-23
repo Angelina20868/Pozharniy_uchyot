@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Подразделения и сотрудники{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Подразделения и сотрудники</h2>
+
+    <div class="row">
+        {% for item in divisions_with_users %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">{{ item.division.div_name }}</h5>
+                </div>
+                <div class="card-body">
+                    {% if item.users %}
+                        <ul class="list-group list-group-flush">
+                            {% for user in item.users %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-person-fill me-2"></i>
+                                    {{ user.full_name }}
+                                </span>
+                                <span class="badge bg-secondary">ID: {{ user.id }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="mt-2 text-muted small">
+                            Всего сотрудников: {{ item.users|length }}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">
+                            <em>В подразделении пока нет сотрудников</em>
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">Подразделения ещё не созданы.</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

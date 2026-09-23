@@ -201,35 +201,44 @@ def index():
             '&nbsp;<br>'
             '&nbsp;<br>',
         },
-        {"title": "",
-         "image": "",
-         "text":#'<div class="mainpage-col__section-half">',
-            'Мобильное приложение МЧС России:'
-            '<br>'
-            '<a class="app-link btn btn-outline-secondary" href="https://apps.apple.com/app/id1530044766" target="_blank" title="App Store">'
-            '📱 Скачать в App Store'
-            '</a>'
-            '<br>'
-            '<a class="app-link btn btn-outline-secondary" href="https://play.google.com/store/apps/details?id=io.citizens.security&hl=ru" target="_blank" title="Google Play">'
-            '🤖 Скачать в Google Play'
-            '</a>'
+        {"title": "Информация",
+         "image": "13.jpg",
+         "text":'<a href="#" class="text-decoration-none">Приказы по части</a><br>'
+            '<a href="#" class="text-decoration-none">Распоряжения</a><br>'
+            '<a href="#" class="text-decoration-none">Объявления</a><br>'
             '&nbsp;<br>'
             '&nbsp;<br>'
-            '&nbsp;<br>'
-            #'</div>'
+            '&nbsp;<br>',
         }
     ]
     return render_template('index.html', cards=cards)
 
 @app.route('/objects/<table_name>')
 def objects(table_name):
+     # --- Специальная обработка для подразделений ---
+    if table_name == 'divisions':
+        divisions = Divisions.query.all()
+        divisions_with_users = []
+        for div in divisions:
+            # Находим всех сотрудников, привязанных к этому подразделению
+            users = (User.query
+                     .join(UsersAtDivisions, UsersAtDivisions.user_id == User.id)
+                     .filter(UsersAtDivisions.div_id == div.id)
+                     .all())
+            divisions_with_users.append({
+                'division': div,
+                'users': users
+            })
+        return render_template('divisions.html',
+                               divisions_with_users=divisions_with_users)
+
+    # --- Универсальная обработка для остальных таблиц ---
     table_map = {
         'user': User,
         'machines_property': Machines_Property,
         'technical_maintenance': Technical_Maintenance,
         'attestations': Attestations,
         'usersAttestations': UsersAttestations,
-        'divisions': Divisions,
         'usersAtDivisions': UsersAtDivisions,
         'vacations': Vacations,
         'forces_resources': Forces_resources
@@ -261,7 +270,27 @@ with app.app_context():
                  phone='912 422-43-65', user_login='maria', is_registered=False),
             User(full_name='Алексей Сидоров', role_id=3, email='alex@example.com',
                  phone='912 901-76-11', user_login='alex',  is_registered=False),
+            User(full_name='Ольга Смирнова',  role_id=1, email='olga@example.com',
+                 phone='912 111-22-33', user_login='olga',  is_registered=False),
         ])
+        db.session.commit()
+
+ # Тестовые подразделения и привязка сотрудников
+    if Divisions.query.count() == 0:
+        div_dev  = Divisions(div_name='Отдел разработки')
+        div_qa   = Divisions(div_name='Отдел тестирования')
+        div_an   = Divisions(div_name='Отдел аналитики')
+        db.session.add_all([div_dev, div_qa, div_an])
+        db.session.commit()
+
+        users = User.query.all()
+        # Иванов и Смирнова → Разработка
+        db.session.add(UsersAtDivisions(user_id=users[0].id, div_id=div_dev.id))
+        db.session.add(UsersAtDivisions(user_id=users[3].id, div_id=div_dev.id))
+        # Петрова → Тестирование
+        db.session.add(UsersAtDivisions(user_id=users[1].id, div_id=div_qa.id))
+        # Сидоров → Аналитика
+        db.session.add(UsersAtDivisions(user_id=users[2].id, div_id=div_an.id))
         db.session.commit()
 
 
