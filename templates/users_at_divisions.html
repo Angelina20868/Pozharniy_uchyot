@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Сотрудники подразделений{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Сотрудники подразделений</h2>
+
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>ФИО сотрудника</th>
+                <th>Подразделение</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>{{ row.id }}</td>
+                <td>{{ row.full_name }}</td>
+                <td>{{ row.div_name }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" class="text-center text-muted">
+                    Записей пока нет
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

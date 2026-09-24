@@ -247,6 +247,18 @@ def objects(table_name):
         return "Таблица не найдена", 404
 
     model = table_map[table_name]
+
+    # Специальная обработка для таблицы связей «сотрудник ↔ подразделение»
+    if table_name == 'usersAtDivisions':
+        rows = []
+        for link in model.query.all():   # ← запрашиваем напрямую, без items
+            rows.append({
+                'id': link.id,
+                'full_name': link.user.full_name if link.user else '—',
+                'div_name': link.division.div_name if link.division else '—',
+            })
+        return render_template('users_at_divisions.html', rows=rows)
+
     items = model.query.all()
     columns = [col.name for col in model.__table__.columns if col.name != 'id']
     return render_template('objects.html',

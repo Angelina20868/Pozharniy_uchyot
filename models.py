@@ -36,6 +36,8 @@ class Divisions(db.Model):
     __tablename__ = 'divisions'
     id = db.Column(db.Integer, primary_key=True)
     div_name = db.Column(db.String(100), nullable=False)
+    
+    division_links = db.relationship('UsersAtDivisions', backref='division')
 
 
 class UsersAtDivisions(db.Model):
@@ -43,6 +45,9 @@ class UsersAtDivisions(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     div_id = db.Column(db.Integer, db.ForeignKey('divisions.id'))
+
+    # Связь с пользователем — имя берём отсюда
+    user = db.relationship('User', backref='division_links')
 
 
 class Attestations(db.Model):
