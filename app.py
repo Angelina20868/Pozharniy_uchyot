@@ -155,9 +155,11 @@ def logout():
 @login_required
 def index():
     # Передаём список карточек в шаблон (чтобы не дублировать HTML)
+    #вот это все надо пропихнуть в index.html
     cards = [
         {"title": "Личный кабинет",
-         "image": "12.jpg",
+         "image": "12.jpg", #замени на статичные пути типа ./12.jpg //проверь как пути указываются, если картинки в статике лежат
+         #я просто не помню, вроде там будет ./static/images/твоя_картинка.jpg
          "text": '<a href="#" class="text-decoration-none">Справка 2-НДФЛ (заказ)</a><br>'
             '<a href="#" class="text-decoration-none">Справка о доходах</a><br>'
             '<a href="#" class="text-decoration-none">Справка с места работы</a><br>'
@@ -211,7 +213,8 @@ def index():
             '&nbsp;<br>',
         }
     ]
-    return render_template('index.html', cards=cards)
+    #вот до этого момента
+    return render_template('index.html', cards=cards)#cards = cards тебе уже не нужны будут тогда
 
 @app.route('/objects/<table_name>')
 def objects(table_name):
