@@ -219,6 +219,11 @@ def index():
 @app.route('/objects/<table_name>')
 def objects(table_name):
      # --- Специальная обработка для подразделений ---
+            
+        #квери надо заменить на методы, вызываемые с бэкенда.
+        #создаешь новый файл ***.py
+        #там будут все запросы к БД
+        #'''SELECT * from divisions GROUPBY по-чему-группировка-должна-быть'''
     if table_name == 'divisions':
         divisions = Divisions.query.all()
         divisions_with_users = []
@@ -269,7 +274,7 @@ def objects(table_name):
                            items=items,
                            columns=columns)
 
-
+#либо закомменть, либо в create_db.py вынеси
 # ================== СОЗДАНИЕ БД ==================
 # ВАЖНО: этот блок выполняется при импорте модуля.
 # Благодаря тому, что все модели импортированы СРАЗУ после from models import ...,
