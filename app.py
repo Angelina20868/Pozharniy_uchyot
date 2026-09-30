@@ -1,5 +1,8 @@
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from sqlalchemy import select, func, join, outerjoin
+from collections import defaultdict
+
 
 # 1) Импортируем db И ВСЕ МОДЕЛИ — это гарантирует, что они зарегистрируются
 #    в db.metadata ДО вызова db.init_app и db.create_all
@@ -154,112 +157,103 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    # Передаём список карточек в шаблон (чтобы не дублировать HTML)
-    cards = [
-        {"title": "Личный кабинет",
-         "image": "12.jpg",
-         "text": '<a href="#" class="text-decoration-none">Справка 2-НДФЛ (заказ)</a><br>'
-            '<a href="#" class="text-decoration-none">Справка о доходах</a><br>'
-            '<a href="#" class="text-decoration-none">Справка с места работы</a><br>'
-            '<a href="#" class="text-decoration-none">Заказ пропусков</a><br>'
-            '<a href="#" class="text-decoration-none">Мои отпуска</a><br>'
-            '<a href="#" class="text-decoration-none">Контакты коллег</a>'
-        },
-        {"title": "Кадры",
-         "image": "13.jpg",
-         "text": '<a href="#" class="text-decoration-none">Аттестация спасателей</a><br>'
-            '<a href="#" class="text-decoration-none">Электронная папка №21</a><br>'
-            '<a href="#" class="text-decoration-none">Электронная папка №22</a><br>'
-            '<a href="#" class="text-decoration-none">Электронная папка №23</a><br>'
-            '<a href="#" class="text-decoration-none">Электронная папка №24</a><br>'
-            '<a href="#" class="text-decoration-none">Электронная папка №25</a>',
-        },
-        {"title": "Штаб",
-         "image": "12.jpg",
-         "text": '<a href="#" class="text-decoration-none">Расчёты по тактике</a><br>'
-            '<a href="#" class="text-decoration-none">Учёт сил и средств</a><br>'
-            '<a href="#" class="text-decoration-none">Отделения (старшие)</a><br>'
-            '&nbsp;<br>'
-            '&nbsp;<br>'
-            '&nbsp;<br>',
-        },
-        {"title": "Нормативная база",
-         "image": "12.jpg",
-         "text":'<a href="https://18.mchs.gov.ru/documents/ukazy-prezidenta-rf" class="text-decoration-none">Указы президента РФ</a><br>'
-            '<a href="https://18.mchs.gov.ru/documents/federalnye-konstitucionnye-zakony" class="text-decoration-none">Федеральные законы</a><br>'
-            '<a href="https://18.mchs.gov.ru/documents/postanovleniya-pravitelstva-rf" class="text-decoration-none">Постановления правительства РФ</a><br>'
-            '<a href="#" class="text-decoration-none">Устав караула</a><br>'
-            '&nbsp;<br>'
-            '&nbsp;<br>',
-        },
-        {"title": "Электронные журналы",
-         "image": "12.jpg",
-         "text": '<a href="#" class="text-decoration-none">Расписание дежурств</a><br>'
-            '<a href="#" class="text-decoration-none">Журнал ТО техники</a><br>'
-            '<a href="#" class="text-decoration-none">Журнал инструктажей</a><br>'
-            '&nbsp;<br>'
-            '&nbsp;<br>'
-            '&nbsp;<br>',
-        },
-        {"title": "Информация",
-         "image": "13.jpg",
-         "text":'<a href="#" class="text-decoration-none">Приказы по части</a><br>'
-            '<a href="#" class="text-decoration-none">Распоряжения</a><br>'
-            '<a href="#" class="text-decoration-none">Объявления</a><br>'
-            '&nbsp;<br>'
-            '&nbsp;<br>'
-            '&nbsp;<br>',
-        }
-    ]
-    return render_template('index.html', cards=cards)
+    return render_template('index.html')
+
 
 @app.route('/objects/<table_name>')
 def objects(table_name):
-     # --- Специальная обработка для подразделений ---
-    if table_name == 'divisions':
-        divisions = Divisions.query.all()
-        divisions_with_users = []
-        for div in divisions:
-            # Находим всех сотрудников, привязанных к этому подразделению
-            users = (User.query
-                     .join(UsersAtDivisions, UsersAtDivisions.user_id == User.id)
-                     .filter(UsersAtDivisions.div_id == div.id)
-                     .all())
-            divisions_with_users.append({
-                'division': div,
-                'users': users
-            })
-        return render_template('divisions.html',
-                               divisions_with_users=divisions_with_users)
-
-    # --- Универсальная обработка для остальных таблиц ---
+    # Маппинг имён таблиц на модели
     table_map = {
         'user': User,
         'machines_property': Machines_Property,
         'technical_maintenance': Technical_Maintenance,
         'attestations': Attestations,
         'usersAttestations': UsersAttestations,
+        'divisions': Divisions,
         'usersAtDivisions': UsersAtDivisions,
         'vacations': Vacations,
         'forces_resources': Forces_resources
     }
+
     if table_name not in table_map:
         return "Таблица не найдена", 404
 
     model = table_map[table_name]
 
-    # Специальная обработка для таблицы связей «сотрудник ↔ подразделение»
+    # ===== Специальная обработка: подразделения + сотрудники =====
     if table_name == 'usersAtDivisions':
-        rows = []
-        for link in model.query.all():   # ← запрашиваем напрямую, без items
-            rows.append({
-                'id': link.id,
-                'full_name': link.user.full_name if link.user else '—',
-                'div_name': link.division.div_name if link.division else '—',
-            })
-        return render_template('users_at_divisions.html', rows=rows)
 
-    items = model.query.all()
+        # ---------------------------------------------------------
+        # ЗАПРОС 1: SELECT ... GROUP BY — подсчёт сотрудников
+        # даёт в результате Эквивалент SQL:
+        #   SELECT divisions.id, divisions.div_name, COUNT(user.id) AS user_count
+        #   FROM divisions
+        #   LEFT OUTER JOIN users_at_divisions
+        #       ON users_at_divisions.div_id = divisions.id
+        #   LEFT OUTER JOIN user
+        #       ON user.id = users_at_divisions.user_id
+        #   GROUP BY divisions.id, divisions.div_name
+        # ---------------------------------------------------------
+        stmt_count = (
+            select(
+                Divisions.id,
+                Divisions.div_name,
+                func.count(User.id).label('user_count')
+            )
+            .outerjoin(UsersAtDivisions, UsersAtDivisions.div_id == Divisions.id)
+            .outerjoin(User, User.id == UsersAtDivisions.user_id)
+            .group_by(Divisions.id, Divisions.div_name)
+            .order_by(Divisions.id)
+        )
+        stats = db.session.execute(stmt_count).all()
+
+        # ---------------------------------------------------------
+        # ЗАПРОС 2: SELECT ... JOIN список сотрудников  даёт в результате Эквивалент SQL:
+        #   SELECT divisions.id, divisions.div_name,
+        #          user.id, user.full_name, user.user_login,
+        #          user.email, user.phone
+        #   FROM divisions
+        #   LEFT OUTER JOIN users_at_divisions
+        #       ON users_at_divisions.div_id = divisions.id
+        #   LEFT OUTER JOIN user
+        #       ON user.id = users_at_divisions.user_id
+        #   ORDER BY divisions.id, user.full_name
+        # ---------------------------------------------------------
+        stmt_rows = (
+            select(Divisions, User)
+            .outerjoin(UsersAtDivisions, UsersAtDivisions.div_id == Divisions.id)
+            .outerjoin(User, User.id == UsersAtDivisions.user_id)
+            .order_by(Divisions.id, User.full_name)
+        )
+        rows = db.session.execute(stmt_rows).all()
+
+        # Группируем результат по подразделениям в Python
+        divisions_data = defaultdict(lambda: {
+            'division': None,
+            'users': [],
+            'user_count': 0
+        })
+
+        for row in rows:
+            div = row.Divisions
+            user = row.User
+            entry = divisions_data[div.id]
+            entry['division'] = div
+            if user is not None:
+                entry['users'].append(user)
+
+        # Подставляем счётчики из GROUP BY-запроса
+        for row in stats:
+            divisions_data[row.id]['user_count'] = row.user_count
+
+        return render_template('users_at_divisions.html',
+                               divisions_data=divisions_data.values())
+
+    # ===== Остальные таблицы: обычный SELECT * FROM table =====
+    # Эквивалент SQL: SELECT * FROM <table>
+    stmt = select(model)
+    items = db.session.execute(stmt).scalars().all()
+
     columns = [col.name for col in model.__table__.columns if col.name != 'id']
     return render_template('objects.html',
                            table_name=table_name,
@@ -273,7 +267,7 @@ def objects(table_name):
 # они уже зарегистрированы в db.metadata к моменту вызова create_all().
 with app.app_context():
     db.create_all()
-
+    # В КОНЕЧНОМ ВАРИАНТЕ ЭТОЙ ЧАСТИ НЕ БУДЕТ. ОНА ЗДЕСЬ ВРЕМЕННО ДЛЯ ПРОВЕРКИ, КАК ВЫГЛЯДЯТ ТАБЛИЦЫ
     if User.query.count() == 0:
         db.session.add_all([
             User(full_name='Иван Иванов',     role_id=1, email='ivan@example.com',

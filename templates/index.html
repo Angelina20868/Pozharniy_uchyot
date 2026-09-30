@@ -99,23 +99,84 @@
     </section>
 
     <!-- Сетка карточек -->
+    {# index.html #}
     <div class="album py-5 bg-body-tertiary">
         <div class="container">
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+            {% set cards = [
+                {
+                    "title": "Личный кабинет",
+                    "image": "12.jpg",
+                    "links": [
+                        {"href": "#", "text": "Справка 2-НДФЛ (заказ)"},
+                        {"href": "#", "text": "Справка о доходах"},
+                        {"href": "#", "text": "Справка с места работы"},
+                        {"href": "#", "text": "Заказ пропусков"},
+                        {"href": "#", "text": "Мои отпуска"},
+                        {"href": "#", "text": "Контакты коллег"}
+                    ]
+                },
+                {
+                    "title": "Кадры",
+                    "image": "13.jpg",
+                    "links": [
+                        {"href": "#", "text": "Аттестация спасателей"},
+                        {"href": "#", "text": "Электронная папка №21"}
+                    ]
+                },
+                {
+                    "title": "Нормативная база",
+                    "image": "12.jpg",
+                    "links": [
+                        {"href": "https://18.mchs.gov.ru/documents/ukazy-prezidenta-rf", "text": "Указы президента РФ"},
+                        {"href": "https://18.mchs.gov.ru/documents/federalnye-konstitucionnye-zakony", "text": "Федеральные законы"}
+                    ]
+                },
+                {
+                    "title": "Штаб",
+                    "image": "12.jpg",
+                    "links": [
+                        {"href": "#", "text": "Расчёты по тактике"},
+                        {"href": "#", "text": "Учёт сил и средств"},
+                        {"href": "#", "text": "Отделение (старшие)"}
+                    ]
+                },
+                {
+                    "title": "Электронные журналы",
+                    "image": "13.jpg",
+                    "links": [
+                        {"href": "#", "text": "Расписание дежурств"},
+                        {"href": "#", "text": "Журнал ТО техники"},
+                        {"href": "#", "text": "Журнал инструктажей"}
+                    ]
+                },
+                {
+                    "title": "Информация",
+                    "image": "12.jpg",
+                    "links": [
+                        {"href": "8.mchs.gov.ru/documents/ukazy-prezidenta-rf", "text": "Указы президента РФ"},
+                        {"href": "https://18.mchs.gov.ru/documents/federalnye-konstitucionnye-zakony", "text": "Федеральные законы"}
+                    ]
+                }
+                ] %}
+
                 {% for card in cards %}
                 <div class="col">
                     <div class="card shadow-sm" style="height: 100%;">
                         <div class="position-relative">
-                            <img src="{{ url_for('static', filename='images/' + card.image) }}" 
-                                class="card-img" 
-                                alt="{{ card.title }}"
+                            <img src="{{ url_for('static', filename='images/' + card.image) }}"
+                                class="card-img" alt="{{ card.title }}"
                                 style="height: 200px; object-fit: cover;">
                             <div class="position-absolute top-50 start-50 translate-middle text-white text-center w-100 px-2">
                                 <h2 class="fw-light">{{ card.title }}</h2>
-                            </div>
+                             </div>
                         </div>
-                        <div class="card-body">
-                            <p class="card-text">{{ card.text | safe }}</p>
+                        <div class="card-body" style="min-height: 180px;">
+                            <p class="card-text">
+                                {% for link in card.links %}
+                                    <a href="{{ link.href }}" class="text-decoration-none">{{ link.text }}</a>{% if not loop.last %}<br>{% endif %}
+                                {% endfor %}
+                            </p>
                         </div>
                     </div>
                 </div>

@@ -5,29 +5,55 @@
 <div class="container mt-4">
     <h2 class="mb-4">Сотрудники подразделений</h2>
 
-    <table class="table table-bordered table-hover">
+    {% if divisions_data %}
+    <table class="table table-bordered table-hover align-middle">
         <thead class="table-dark">
             <tr>
-                <th>#</th>
-                <th>ФИО сотрудника</th>
-                <th>Подразделение</th>
+                <th style="width: 5%">#</th>
+                <th style="width: 30%">ФИО сотрудника</th>
+                <th style="width: 25%">Подразделение</th>
+                <th style="width: 20%">Email</th>
+                <th style="width: 20%">Телефон</th>
             </tr>
         </thead>
+
+        {% for entry in divisions_data %}
         <tbody>
-            {% for row in rows %}
-            <tr>
-                <td>{{ row.id }}</td>
-                <td>{{ row.full_name }}</td>
-                <td>{{ row.div_name }}</td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="3" class="text-center text-muted">
-                    Записей пока нет
+            <tr class="table-primary">
+                <td colspan="5" class="fw-bold fs-5">
+                    <i class="bi bi-building me-2"></i>
+                    {{ entry.division.div_name }}
+                    <span class="badge bg-secondary ms-2">
+                        {{ entry.user_count }} чел.
+                    </span>
                 </td>
             </tr>
-            {% endfor %}
+
+            {% if entry.users %}
+                {% for user in entry.users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.full_name }}</td>
+                    <td>{{ entry.division.div_name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.phone }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="5" class="text-muted text-center fst-italic">
+                        В подразделении пока нет сотрудников
+                    </td>
+                </tr>
+            {% endif %}
         </tbody>
+        {% endfor %}
     </table>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        Записей пока нет. Проверьте, добавлены ли тестовые данные в базу.
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
