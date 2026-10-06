@@ -2,6 +2,7 @@ from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from sqlalchemy import select, func, join, outerjoin
 from collections import defaultdict
+from datetime import date, datetime
 
 
 # 1) Импортируем db И ВСЕ МОДЕЛИ — это гарантирует, что они зарегистрируются
@@ -20,6 +21,32 @@ from models import (
     Forces_resources,
 )
 
+TABLE_MAP = {
+    'user':                  User,
+    'machines_property':     Machines_Property,
+    'technical_maintenance': Technical_Maintenance,
+    'attestations':          Attestations,
+    'usersAttestations':     UsersAttestations,
+    'divisions':             Divisions,
+    'usersAtDivisions':      UsersAtDivisions,
+    'vacations':             Vacations,
+    'forces_resources':      Forces_resources,
+}
+
+# Какие role_id могут редактировать каждую таблицу
+# 1 = админ, 2 = модератор, 3 = обычный пользователь
+EDIT_PERMISSIONS = {
+    'user':                  [1, 2],
+    'machines_property':     [1, 2],
+    'technical_maintenance': [1, 2],
+    'attestations':          [1, 2],
+    'usersAttestations':     [1, 2],
+    'divisions':             [1],
+    'usersAtDivisions':      [1],
+    'vacations':             [1, 2, 3],
+    'forces_resources':      [1, 2],
+}
+
 # 2) Создаём приложение (обратите внимание на __name__)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'change-me-to-random-secret'
@@ -34,10 +61,20 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+
 @login_manager.user_loader
 def load_user(user_id):
+    print("load user f-n")
     return Registered_Users.query.get(int(user_id))
 
+
+def can_edit(table_name):
+    """Проверяет, имеет ли текущий пользователь право редактировать таблицу."""
+    if not current_user.is_authenticated:
+        return False
+    role = current_user.role_id
+    print("current_user role ")
+    return role in EDIT_PERMISSIONS.get(table_name, [])
 
 # ================== МАРШРУТЫ ==================
 
@@ -179,6 +216,7 @@ def objects(table_name):
         return "Таблица не найдена", 404
 
     model = table_map[table_name]
+    editable = can_edit(table_name)
 
     # ===== Специальная обработка: подразделения + сотрудники =====
     if table_name == 'usersAtDivisions':
@@ -247,19 +285,149 @@ def objects(table_name):
             divisions_data[row.id]['user_count'] = row.user_count
 
         return render_template('users_at_divisions.html',
-                               divisions_data=divisions_data.values())
+                               divisions_data=divisions_data.values(),
+                               can_edit=editable)
+
 
     # ===== Остальные таблицы: обычный SELECT * FROM table =====
     # Эквивалент SQL: SELECT * FROM <table>
     stmt = select(model)
     items = db.session.execute(stmt).scalars().all()
-
     columns = [col.name for col in model.__table__.columns if col.name != 'id']
+    
     return render_template('objects.html',
                            table_name=table_name,
                            items=items,
-                           columns=columns)
+                           columns=columns,
+                           can_edit=editable)
 
+
+def _coerce_value(column, raw_value):
+    """Преобразует строку из формы в нужный Python-тип."""
+    if raw_value == '' or raw_value is None:
+        return None
+    col_type = column.type
+    if isinstance(col_type, db.Integer) or isinstance(col_type, db.SmallInteger):
+        return int(raw_value)
+    if isinstance(col_type, db.Float):
+        return float(raw_value)
+    if isinstance(col_type, db.Boolean):
+        return raw_value.lower() in ('1', 'true', 'on', 'yes')
+    if isinstance(col_type, db.Date):
+        return datetime.strptime(raw_value, '%Y-%m-%d').date()
+    return raw_value  # String, Text и т.д.
+
+def _html_input_type(column):
+    """Подбирает type для <input> на основе типа колонки."""
+    col_type = column.type
+    if isinstance(col_type, db.Date):
+        return 'date'
+    if isinstance(col_type, (db.Integer, db.SmallInteger)):
+        return 'number'
+    if isinstance(col_type, db.Float):
+        return 'number'
+    if isinstance(col_type, db.Boolean):
+        return 'checkbox'
+    return 'text'
+
+
+@app.route('/objects/<table_name>/add', methods=['GET', 'POST'])
+@login_required
+def add_item(table_name):
+    """Добавление новой строки — чистый HTML-формой."""
+    if table_name not in TABLE_MAP:
+        return "Таблица не найдена", 404
+    if not can_edit(table_name):
+        flash('У вас нет прав для добавления записей в эту таблицу.', 'danger')
+        return redirect(url_for('objects', table_name=table_name))
+
+    model = TABLE_MAP[table_name]
+    columns = [c for c in model.__table__.columns if c.name != 'id']
+
+    if request.method == 'POST':
+        try:
+            new_item = model()
+            for col in columns:
+                raw = request.form.get(col.name, '')
+                setattr(new_item, col.name, _coerce_value(col, raw))
+            db.session.add(new_item)
+            db.session.commit()
+            flash('Запись успешно добавлена.', 'success')
+            return redirect(url_for('objects', table_name=table_name))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при добавлении: {e}', 'danger')
+
+    return render_template('edit_item.html',
+                           table_name=table_name,
+                           columns=columns,
+                           item=None,          # None → режим добавления
+                           is_new=True,
+                           html_input_type=_html_input_type)
+
+
+@app.route('/objects/<table_name>/edit/<int:item_id>', methods=['GET', 'POST'])
+@login_required
+def edit_item(table_name, item_id):
+    """Редактирование существующей строки — чистый HTML-формой."""
+    if table_name not in TABLE_MAP:
+        return "Таблица не найдена", 404
+    if not can_edit(table_name):
+        flash('У вас нет прав для редактирования этой таблицы.', 'danger')
+        return redirect(url_for('objects', table_name=table_name))
+
+    model = TABLE_MAP[table_name]
+    item = db.session.get(model, item_id)
+    if item is None:
+        flash('Запись не найдена.', 'warning')
+        return redirect(url_for('objects', table_name=table_name))
+
+    columns = [c for c in model.__table__.columns if c.name != 'id']
+
+    if request.method == 'POST':
+        try:
+            for col in columns:
+                raw = request.form.get(col.name, '')
+                setattr(item, col.name, _coerce_value(col, raw))
+            db.session.commit()
+            flash('Запись успешно обновлена.', 'success')
+            return redirect(url_for('objects', table_name=table_name))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при сохранении: {e}', 'danger')
+
+    return render_template('edit_item.html',
+                           table_name=table_name,
+                           columns=columns,
+                           item=item,          # существующий объект
+                           is_new=False,
+                           html_input_type=_html_input_type)
+
+
+@app.route('/objects/<table_name>/delete/<int:item_id>', methods=['POST'])
+@login_required
+def delete_item(table_name, item_id):
+    """Удаление строки — через маленькую форму с кнопкой."""
+    if table_name not in TABLE_MAP:
+        return "Таблица не найдена", 404
+    if not can_edit(table_name):
+        flash('У вас нет прав для удаления.', 'danger')
+        return redirect(url_for('objects', table_name=table_name))
+
+    model = TABLE_MAP[table_name]
+    item = db.session.get(model, item_id)
+    if item is None:
+        flash('Запись не найдена.', 'warning')
+    else:
+        try:
+            db.session.delete(item)
+            db.session.commit()
+            flash('Запись удалена.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при удалении: {e}', 'danger')
+
+    return redirect(url_for('objects', table_name=table_name))
 
 # ================== СОЗДАНИЕ БД ==================
 # ВАЖНО: этот блок выполняется при импорте модуля.

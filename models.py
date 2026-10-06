@@ -19,6 +19,12 @@ class Registered_Users(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    @property
+    def role_id(self):
+        user = User.query.filter_by(user_login=self.username).first()
+        return user.role_id if user else None
+
+
 
 # ---------- Сотрудники ----------
 class User(db.Model):

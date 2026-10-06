@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if is_new %}Добавление{% else %}Редактирование{% endif %}
+    · {{ table_name|capitalize }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 600px;">
+
+    <h2>
+        {% if is_new %}
+            Добавить новую запись
+        {% else %}
+            Редактировать запись #{{ item.id }}
+        {% endif %}
+        <small class="text-muted">({{ table_name }})</small>
+    </h2>
+
+    <form method="POST">
+        {% for col in columns %}
+        <div class="mb-3">
+            <label for="{{ col.name }}" class="form-label">
+                {{ col.name|replace('_', ' ')|title }}
+            </label>
+
+            {% if html_input_type(col) == 'checkbox' %}
+                <div class="form-check">
+                    <input type="hidden" name="{{ col.name }}" value="0">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           id="{{ col.name }}"
+                           name="{{ col.name }}"
+                           value="1"
+                           {% if item and item|attr(col.name) %}checked{% endif %}
+                </div>
+            {% else %}
+                <input type="{{ html_input_type(col) }}"
+                       class="form-control"
+                       id="{{ col.name }}"
+                       name="{{ col.name }}"
+                       value="{% if item and item|attr(col.name) is not none %}{{ item|attr(col.name) }}{% endif %}""
+                       {% if col.nullable == False and is_new %}required{% endif %}>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">
+                {% if is_new %}Добавить{% else %}Сохранить{% endif %}
+            </button>
+            <a href="{{ url_for('objects', table_name=table_name) }}"
+               class="btn btn-secondary">
+                Отмена
+            </a>
+        </div>
+    </form>
+
+</div>
+{% endblock %}
