@@ -11,7 +11,7 @@
             <tr>
                 <th style="width: 5%">#</th>
                 <th style="width: 30%">ФИО сотрудника</th>
-                <th style="width: 25%">Подразделение</th>
+                <th style="width: 25%">Должность</th>
                 <th style="width: 20%">Email</th>
                 <th style="width: 20%">Телефон</th>
             </tr>
@@ -34,7 +34,7 @@
                 <tr>
                     <td>{{ user.id }}</td>
                     <td>{{ user.full_name }}</td>
-                    <td>{{ entry.division.div_name }}</td>
+                    <td>{{ user.position }}</td>
                     <td>{{ user.email }}</td>
                     <td>{{ user.phone }}</td>
                 </tr>

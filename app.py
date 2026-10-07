@@ -64,7 +64,6 @@ login_manager.login_view = 'login'
 
 @login_manager.user_loader
 def load_user(user_id):
-    print("load user f-n")
     return Registered_Users.query.get(int(user_id))
 
 
@@ -73,7 +72,6 @@ def can_edit(table_name):
     if not current_user.is_authenticated:
         return False
     role = current_user.role_id
-    print("current_user role ")
     return role in EDIT_PERMISSIONS.get(table_name, [])
 
 # ================== МАРШРУТЫ ==================
@@ -438,33 +436,9 @@ with app.app_context():
     # В КОНЕЧНОМ ВАРИАНТЕ ЭТОЙ ЧАСТИ НЕ БУДЕТ. ОНА ЗДЕСЬ ВРЕМЕННО ДЛЯ ПРОВЕРКИ, КАК ВЫГЛЯДЯТ ТАБЛИЦЫ
     if User.query.count() == 0:
         db.session.add_all([
-            User(full_name='Иван Иванов',     role_id=1, email='ivan@example.com',
-                 phone='912 473-45-92', user_login='ivan',  is_registered=False),
-            User(full_name='Мария Петрова',   role_id=2, email='maria@example.com',
-                 phone='912 422-43-65', user_login='maria', is_registered=False),
-            User(full_name='Алексей Сидоров', role_id=3, email='alex@example.com',
-                 phone='912 901-76-11', user_login='alex',  is_registered=False),
-            User(full_name='Ольга Смирнова',  role_id=1, email='olga@example.com',
-                 phone='912 111-22-33', user_login='olga',  is_registered=False),
+            User(full_name='admin', position='', role_id=1, email='',
+                 phone='', user_login='admin',  is_registered=False),
         ])
-        db.session.commit()
-
- # Тестовые подразделения и привязка сотрудников
-    if Divisions.query.count() == 0:
-        div_dev  = Divisions(div_name='Отдел разработки')
-        div_qa   = Divisions(div_name='Отдел тестирования')
-        div_an   = Divisions(div_name='Отдел аналитики')
-        db.session.add_all([div_dev, div_qa, div_an])
-        db.session.commit()
-
-        users = User.query.all()
-        # Иванов и Смирнова → Разработка
-        db.session.add(UsersAtDivisions(user_id=users[0].id, div_id=div_dev.id))
-        db.session.add(UsersAtDivisions(user_id=users[3].id, div_id=div_dev.id))
-        # Петрова → Тестирование
-        db.session.add(UsersAtDivisions(user_id=users[1].id, div_id=div_qa.id))
-        # Сидоров → Аналитика
-        db.session.add(UsersAtDivisions(user_id=users[2].id, div_id=div_an.id))
         db.session.commit()
 
 

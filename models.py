@@ -25,18 +25,18 @@ class Registered_Users(UserMixin, db.Model):
         return user.role_id if user else None
 
 
-
 # ---------- Сотрудники ----------
 class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(100), nullable=False)
+    position = db.Column(db.String(24), nullable=False)
     role_id = db.Column(db.Integer, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    phone = db.Column(db.String(24), nullable=False)
-    user_login = db.Column(db.String(80), unique=True, nullable=True)
+    user_login = db.Column(db.String(48), unique=True, nullable=False)
     is_registered = db.Column(db.Boolean, default=False, nullable=False)
-
+    email = db.Column(db.String(48), unique=True, nullable=False)
+    phone = db.Column(db.String(24), nullable=False)
+    
 
 class Divisions(db.Model):
     __tablename__ = 'divisions'
