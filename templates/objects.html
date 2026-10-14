@@ -7,12 +7,12 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Таблица: {{ table_name|capitalize }}</h2>
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">← На главную</a>
+        <a href="{{ url_for('main.index') }}" class="btn btn-secondary">← На главную</a>
     </div>
 
     {# ---------- Кнопка «Добавить» (только если есть права) ---------- #}
     {% if can_edit %}
-    <a href="{{ url_for('add_item', table_name=table_name) }}"
+    <a href="{{ url_for('objects.add_item', table_name=table_name) }}"
        class="btn btn-success mb-3">
         + Добавить новую строку
     </a>
@@ -37,14 +37,13 @@
                 <tr>
                     <td>{{ item.id }}</td>
                     {% for column in columns %}
-                   <!-- ✅ Правильно (Jinja2-фильтр attr) -->
-                        <td>{{ item|attr(column) }}</td>
+                    <td>{{ item[column] }}</td>
                     {% endfor %}
 
                     {% if can_edit %}
                     <td class="text-nowrap">
                         {# Кнопка «Редактировать» — обычная ссылка #}
-                        <a href="{{ url_for('edit_item',
+                        <a href="{{ url_for('objects.edit_item',
                                             table_name=table_name,
                                             item_id=item.id) }}"
                            class="btn btn-sm btn-primary">
@@ -53,7 +52,7 @@
 
                         {# Кнопка «Удалить» — мини-форма POST #}
                         <form method="POST"
-                              action="{{ url_for('delete_item',
+                              action="{{ url_for('objects.delete_item',
                                                  table_name=table_name,
                                                  item_id=item.id) }}"
                               style="display:inline"

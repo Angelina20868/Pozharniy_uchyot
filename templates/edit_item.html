@@ -32,14 +32,14 @@
                            id="{{ col.name }}"
                            name="{{ col.name }}"
                            value="1"
-                           {% if item and item|attr(col.name) %}checked{% endif %}
+                           {% if item and item[col.name] %}checked{% endif %}>
                 </div>
             {% else %}
                 <input type="{{ html_input_type(col) }}"
                        class="form-control"
                        id="{{ col.name }}"
                        name="{{ col.name }}"
-                       value="{% if item and item|attr(col.name) is not none %}{{ item|attr(col.name) }}{% endif %}""
+                       value="{% if item and item[col.name] is not none %}{{ item[col.name] }}{% endif %}"
                        {% if col.nullable == False and is_new %}required{% endif %}>
             {% endif %}
         </div>
@@ -49,7 +49,7 @@
             <button type="submit" class="btn btn-primary">
                 {% if is_new %}Добавить{% else %}Сохранить{% endif %}
             </button>
-            <a href="{{ url_for('objects', table_name=table_name) }}"
+            <a href="{{ url_for('objects.objects', table_name=table_name) }}"
                class="btn btn-secondary">
                 Отмена
             </a>

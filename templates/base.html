@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="">
     <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
-    <title>{% block title %}Album example · Bootstrap v5.3{% endblock %}</title>
+    <title>{% block title %}Пожарная часть · Bootstrap v5.3{% endblock %}</title>
 
     <!-- Bootstrap CSS (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
@@ -66,24 +66,24 @@
                 <div class="row">
                     <div class="col-sm-8 col-md-7 py-4">
                         <h4>О сайте</h4>
-                        <p class="text-body">Веб-приложение пожарной части №21 города Ижевска Удмуртской Республики</p>
+                        <p class="text-body">Информация о Пожарной части № 173  ***-ского района   ***-ской области РФ.</p>
                     </div>
                     <div class="col-6 col-md">
                         <ul class="list-unstyled text-small">
                             <li class="mb-1">
-                                <a class="link-light text-decoration-none" href="https://18.mchs.gov.ru/glavnoe-upravlenie"
+                                <a class="link-secondary text-decoration-none" href="https://18.mchs.gov.ru/glavnoe-upravlenie"
                                     ><br>Главное управление</a>
                             </li>
                             <li class="mb-1">
-                                <a class="link-light text-decoration-none" href="https://18.mchs.gov.ru/deyatelnost"
+                                <a class="link-secondary text-decoration-none" href="https://18.mchs.gov.ru/deyatelnost"
                                     >Деятельность</a>
                             </li>
                             <li class="mb-1">
-                                <a class="link-light text-decoration-none" href="https://mchs.gov.ru/deyatelnost/protivodeystvie-terrorizmu"
+                                <a class="link-secondary text-decoration-none" href="https://mchs.gov.ru/deyatelnost/protivodeystvie-terrorizmu"
                                 >Противодействие терроризму</a>
                             </li>
                             <li class="mb-1">
-                                <a class="link-light text-decoration-none" href="https://18.mchs.gov.ru/deyatelnost/protivodeystvie-korrupcii"
+                                <a class="link-secondary text-decoration-none" href="https://18.mchs.gov.ru/deyatelnost/protivodeystvie-korrupcii"
                                 >Противодействие коррупции</a>
                         </ul>
                     </div>
@@ -92,7 +92,7 @@
         </div>
         <div class="navbar navbar-dark bg-dark shadow-sm">
             <div class="container">
-                <a href="{{ url_for('index') }}" class="navbar-brand d-flex align-items-center">
+                <a href="{{ url_for('main.index') }}" class="navbar-brand d-flex align-items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" aria-hidden="true" class="me-2" viewBox="0 0 24 24">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                         <circle cx="12" cy="13" r="4"></circle>
@@ -104,7 +104,7 @@
                 </button>
                 <div class="user-info">
                     <h3 class="fw-light"></h3>
-                    <p>{{ current_user.username }} <a href="{{ url_for('logout') }}">   Выйти</a></p>
+                    <p>{{ current_user.username }} <a href="{{ url_for('auth.logout') }}">   Выйти</a></p>
                 </div>
                 <h1>🚒</h1>
             </div>
@@ -119,12 +119,12 @@
     <!-- Подвал -->
     <footer class="text-body-secondary py-5">
         <div class="container">
-             <div class="mainpage-col__section-half">
-                Мобильное приложение МЧС России: 
+            <div class="mainpage-col__section-half">
+                Мобильное приложение МЧС России:<br>
                 <a class="app-link btn btn-outline-secondary" href="https://apps.apple.com/app/id1530044766" target="_blank" title="App Store">
                     📱 Скачать в App Store</a>
                     <a class="app-link btn btn-outline-secondary" href="https://play.google.com/store/apps/details?id=io.citizens.security&hl=ru" target="_blank" title="Google Play">
-                    🤖 Скачать в Google Play</a><br><br>
+                    🤖 Скачать в Google Play</a>
             </div>
             <p class="float-end mb-1"><a href="#">Наверх</a></p>
             <p class="mb-1">Работа по дисциплине Информационные технологии и программирование-3</p>
@@ -134,4 +134,82 @@
     <!-- Bootstrap JS (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+    <script>
+    (() => {
+        'use strict'
+
+        const getStoredTheme = () => localStorage.getItem('theme')
+        const setStoredTheme = theme => localStorage.setItem('theme', theme)
+
+        const getPreferredTheme = () => {
+            const storedTheme = getStoredTheme()
+            if (storedTheme) {
+            return storedTheme
+            }
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        }
+
+        const setTheme = theme => {
+            if (theme === 'auto') {
+            document.documentElement.setAttribute('data-bs-theme',
+                window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            } else {
+            document.documentElement.setAttribute('data-bs-theme', theme)
+            }
+        }
+
+        setTheme(getPreferredTheme())
+
+        const showActiveTheme = (theme, focus = false) => {
+            const themeSwitcher = document.querySelector('#bd-theme')
+
+            if (!themeSwitcher) {
+            return
+            }
+
+            const themeSwitcherText = document.querySelector('#bd-theme-text')
+            const activeThemeIcon = document.querySelector('.theme-icon-active use')
+            const btnToActive = document.querySelector(`[data-bs-theme-value="${theme}"]`)
+            const svgOfActiveBtn = btnToActive.querySelector('svg use').getAttribute('href')
+
+            document.querySelectorAll('[data-bs-theme-value]').forEach(element => {
+            element.classList.remove('active')
+            element.setAttribute('aria-pressed', 'false')
+            })
+
+            btnToActive.classList.add('active')
+            btnToActive.setAttribute('aria-pressed', 'true')
+            activeThemeIcon.setAttribute('href', svgOfActiveBtn)
+            const themeSwitcherLabel = `${themeSwitcherText.textContent} (${btnToActive.dataset.bsThemeValue})`
+            themeSwitcher.setAttribute('aria-label', themeSwitcherLabel)
+
+            if (focus) {
+            themeSwitcher.focus()
+            }
+        }
+
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            const storedTheme = getStoredTheme()
+            if (storedTheme !== 'light' && storedTheme !== 'dark') {
+                setTheme(getPreferredTheme())
+            }
+        })
+
+        window.addEventListener('DOMContentLoaded', () => {
+            showActiveTheme(getPreferredTheme())
+
+            document.querySelectorAll('[data-bs-theme-value]')
+            .forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                const theme = toggle.getAttribute('data-bs-theme-value')
+                setStoredTheme(theme)
+                setTheme(theme)
+                showActiveTheme(theme, true)
+                })
+            })
+        })
+        })()
+    </script>
+
     {% block scripts %}{% endblock %}
+</body>
