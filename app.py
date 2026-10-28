@@ -44,7 +44,7 @@ with app.app_context():
     # В КОНЕЧНОМ ВАРИАНТЕ ЭТОЙ ЧАСТИ НЕ БУДЕТ. ОНА ЗДЕСЬ ВРЕМЕННО ДЛЯ ПРОВЕРКИ, КАК ВЫГЛЯДЯТ ТАБЛИЦЫ
     if User.query.count() == 0:
         db.session.add_all([
-            User(full_name='admin', position='', role_id=1, email='',
+            User(full_name='admin', position='', access_level=1, email='',
                  phone='', user_login='admin',  is_registered=False),
         ])
         db.session.commit()

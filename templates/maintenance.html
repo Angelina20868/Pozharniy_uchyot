@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Техническое обслуживание</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Журнал технического обслуживания</h1>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID ТО</th>
+                <th>Статус</th>
+                <th>Инвентарный номер</th>
+                <th>Модель машины</th>
+                <th>Осмотр провёл</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Цикл по всем записям, переданным из app.py -->
+            {% for record in maintenance_records %}
+            <tr>
+                <td>{{ record.id }}</td>
+                <td>{{ record.status }}</td>
+                <!-- Обращаемся к связанным данным через атрибут machine -->
+                <td>{{ record.machine.inventory_num }}</td>
+                <td>{{ record.machine.model_name }}</td>
+                <td>{{ record.checked_user.full_name }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4">Записей пока нет</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

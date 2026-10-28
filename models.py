@@ -20,9 +20,9 @@ class Registered_Users(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     @property
-    def role_id(self):
+    def access_level(self):
         user = User.query.filter_by(user_login=self.username).first()
-        return user.role_id if user else None
+        return user.access_level if user else None
 
 
 # ---------- Сотрудники ----------
@@ -31,42 +31,37 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(100), nullable=False)
     position = db.Column(db.String(24), nullable=False)
-    role_id = db.Column(db.Integer, nullable=False)
-    user_login = db.Column(db.String(48), unique=True, nullable=False)
+    division_id = db.Column(db.String(64), db.ForeignKey('divisions.div_name'), nullable=True)
+    access_level = db.Column(db.Integer, nullable=False)
+    user_login = db.Column(db.String(32), unique=True, nullable=False)
     is_registered = db.Column(db.Boolean, default=False, nullable=False)
-    email = db.Column(db.String(48), unique=True, nullable=False)
+    email = db.Column(db.String(48), nullable=True)
     phone = db.Column(db.String(24), nullable=False)
+    
+    # Связь с подразделением (через название)
+    division = db.relationship('Divisions', backref='users', foreign_keys=[division_id])
     
 
 class Divisions(db.Model):
     __tablename__ = 'divisions'
     id = db.Column(db.Integer, primary_key=True)
-    div_name = db.Column(db.String(100), nullable=False)
-    
-    division_links = db.relationship('UsersAtDivisions', backref='division')
-
+    div_name = db.Column(db.String(64), nullable=False, unique=True)  # ← unique=True обязательно!
 
 class UsersAtDivisions(db.Model):
     __tablename__ = 'users_at_divisions'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     div_id = db.Column(db.Integer, db.ForeignKey('divisions.id'))
-
-    # Связь с пользователем — имя берём отсюда
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    # Связи
+    division = db.relationship('Divisions', backref='division_links')
     user = db.relationship('User', backref='division_links')
-
-
-class Attestations(db.Model):
-    __tablename__ = 'attestations'
-    id = db.Column(db.Integer, primary_key=True)
-    status = db.Column(db.String(32), nullable=False)
 
 
 class UsersAttestations(db.Model):
     __tablename__ = 'users_attestations'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    att_id = db.Column(db.Integer, db.ForeignKey('attestations.id'))
+    att_date = db.Column(db.Date)
     valid_until = db.Column(db.Date)
     description = db.Column(db.Text)
 
@@ -83,20 +78,29 @@ class Vacations(db.Model):
 class Machines_Property(db.Model):
     __tablename__ = 'machines_property'
     id = db.Column(db.Integer, primary_key=True)
-    category = db.Column(db.String(100), nullable=False)
+    model_name = db.Column(db.String(100), nullable=False)
+    inventory_num = db.Column(db.Integer, UNIQUE=True, nullable=False)
     manufacter_year = db.Column(db.SmallInteger)
     cost = db.Column(db.Float, nullable=False)
     responsible_user_id = db.Column(db.Integer, nullable=False)
 
-
 class Technical_Maintenance(db.Model):
     __tablename__ = 'technical_maintenance'
     id = db.Column(db.Integer, primary_key=True)
-    category = db.Column(db.String(100), nullable=False)
-    resource_id = db.Column(db.Integer, nullable=False)
     checked_by = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(24), nullable=False)
-
+    
+    machine_inventory_num = db.Column(     # Добавляем поле для инвентарного номера и указываем его как внешний ключ
+        db.Integer, 
+        db.ForeignKey('machines_property.inventory_num'), 
+        nullable=False
+    )
+    # В модели Technical_Maintenance
+    checked_user = db.relationship('User', foreign_keys=[checked_by])
+    machine = db.relationship(     # Настраиваем связь. # Теперь в объекте machine будут доступны все свойства машины (model_name, cost и т.д.)
+        'Machines_Property', 
+        backref=db.backref('maintenance_records', lazy='dynamic')
+    )
 
 class Forces_resources(db.Model):
     __tablename__ = 'forces_resources'

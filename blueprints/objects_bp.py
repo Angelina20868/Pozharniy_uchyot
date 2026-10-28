@@ -4,7 +4,7 @@ from sqlalchemy import select, func, outerjoin
 from collections import defaultdict
 from datetime import datetime
 from models import (
-    db, User, Divisions, UsersAtDivisions, Attestations, UsersAttestations, 
+    db, User, Divisions, UsersAtDivisions, UsersAttestations, 
     Vacations, Machines_Property, Technical_Maintenance, Forces_resources
 )
 
@@ -13,13 +13,13 @@ objects_bp = Blueprint('objects', __name__, url_prefix='/objects')
 # Маппинг имён таблиц на модели
 TABLE_MAP = {
     'user': User, 'machines_property': Machines_Property,
-    'technical_maintenance': Technical_Maintenance, 'attestations': Attestations,
+    'technical_maintenance': Technical_Maintenance,
     'usersAttestations': UsersAttestations, 'divisions': Divisions,
     'usersAtDivisions': UsersAtDivisions, 'vacations': Vacations,
     'forces_resources': Forces_resources,
 }
 
-# Какие role_id могут редактировать каждую таблицу
+# Какие access_level могут редактировать каждую таблицу
 EDIT_PERMISSIONS = {
     'user': [1, 2], 'machines_property': [1, 2], 'technical_maintenance': [1, 2],
     'attestations': [1, 2], 'usersAttestations': [1, 2], 'divisions': [1],
@@ -30,8 +30,16 @@ def can_edit(table_name):
     """Проверяет, имеет ли текущий пользователь право редактировать таблицу."""
     if not current_user.is_authenticated:
         return False
-    role = current_user.role_id
-    return role in EDIT_PERMISSIONS.get(table_name, [])
+    access = current_user.access_level
+    return access in EDIT_PERMISSIONS.get(table_name, [])
+
+@objects_bp.route('/maintenance')
+def show_maintenance():
+    # Получаем данные из БД одним запросом (чтобы избежать проблемы N+1)
+    records = db.session.query(Technical_Maintenance).all()
+    
+    # Передаем список записей в HTML-шаблон под именем 'maintenance_records'
+    return render_template('maintenance.html', maintenance_records=records)
 
 @objects_bp.route('/<table_name>')
 @login_required
@@ -45,16 +53,13 @@ def objects(table_name):
 
     # ===== Специальная обработка: подразделения + сотрудники =====
     if table_name == 'usersAtDivisions':
-
+        
         # ---------------------------------------------------------
-        # ЗАПРОС 1: SELECT ... GROUP BY — подсчёт сотрудников
-        # даёт в результате Эквивалент SQL:
+        # ЗАПРОС 1: Подсчёт сотрудников по подразделениям
+        # SQL-эквивалент:
         #   SELECT divisions.id, divisions.div_name, COUNT(user.id) AS user_count
         #   FROM divisions
-        #   LEFT OUTER JOIN users_at_divisions
-        #       ON users_at_divisions.div_id = divisions.id
-        #   LEFT OUTER JOIN user
-        #       ON user.id = users_at_divisions.user_id
+        #   LEFT JOIN user ON user.division_id = divisions.div_name
         #   GROUP BY divisions.id, divisions.div_name
         # ---------------------------------------------------------
         stmt_count = (
@@ -63,40 +68,34 @@ def objects(table_name):
                 Divisions.div_name,
                 func.count(User.id).label('user_count')
             )
-            .outerjoin(UsersAtDivisions, UsersAtDivisions.div_id == Divisions.id)
-            .outerjoin(User, User.id == UsersAtDivisions.user_id)
+            .outerjoin(User, func.lower(User.division_id) == func.lower(Divisions.div_name))
             .group_by(Divisions.id, Divisions.div_name)
             .order_by(Divisions.id)
         )
         stats = db.session.execute(stmt_count).all()
-
+        
         # ---------------------------------------------------------
-        # ЗАПРОС 2: SELECT ... JOIN список сотрудников  даёт в результате Эквивалент SQL:
-        #   SELECT divisions.id, divisions.div_name,
-        #          user.id, user.full_name, user.user_login,
-        #          user.email, user.phone
+        # ЗАПРОС 2: Список сотрудников с подразделениями
+        # SQL-эквивалент:
+        #   SELECT divisions.*, user.*
         #   FROM divisions
-        #   LEFT OUTER JOIN users_at_divisions
-        #       ON users_at_divisions.div_id = divisions.id
-        #   LEFT OUTER JOIN user
-        #       ON user.id = users_at_divisions.user_id
+        #   LEFT JOIN user ON user.division_id = divisions.div_name
         #   ORDER BY divisions.id, user.full_name
         # ---------------------------------------------------------
         stmt_rows = (
             select(Divisions, User)
-            .outerjoin(UsersAtDivisions, UsersAtDivisions.div_id == Divisions.id)
-            .outerjoin(User, User.id == UsersAtDivisions.user_id)
+            .outerjoin(User, func.lower(User.division_id) == func.lower(Divisions.div_name))
             .order_by(Divisions.id, User.full_name)
         )
         rows = db.session.execute(stmt_rows).all()
-
-        # Группируем результат по подразделениям в Python
+        
+        # Группируем результат по подразделениям
         divisions_data = defaultdict(lambda: {
             'division': None,
             'users': [],
             'user_count': 0
         })
-
+        
         for row in rows:
             div = row.Divisions
             user = row.User
@@ -104,16 +103,15 @@ def objects(table_name):
             entry['division'] = div
             if user is not None:
                 entry['users'].append(user)
-
-        # Подставляем счётчики из GROUP BY-запроса
+        
+        # Подставляем счётчики из GROUP BY
         for row in stats:
             divisions_data[row.id]['user_count'] = row.user_count
-
+        
         return render_template('users_at_divisions.html',
                                divisions_data=divisions_data.values(),
                                can_edit=editable)
-
-
+    
     # ===== Остальные таблицы: обычный SELECT * FROM table =====
     # Эквивалент SQL: SELECT * FROM <table>
     stmt = select(model)
