@@ -79,7 +79,7 @@ class Machines_Property(db.Model):
     __tablename__ = 'machines_property'
     id = db.Column(db.Integer, primary_key=True)
     model_name = db.Column(db.String(100), nullable=False)
-    inventory_num = db.Column(db.Integer, UNIQUE=True, nullable=False)
+    inventory_num = db.Column(db.Integer, unique=True, nullable=False)
     manufacter_year = db.Column(db.SmallInteger)
     cost = db.Column(db.Float, nullable=False)
     responsible_user_id = db.Column(db.Integer, nullable=False)
@@ -87,7 +87,7 @@ class Machines_Property(db.Model):
 class Technical_Maintenance(db.Model):
     __tablename__ = 'technical_maintenance'
     id = db.Column(db.Integer, primary_key=True)
-    checked_by = db.Column(db.Integer, nullable=False)
+    checked_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     status = db.Column(db.String(24), nullable=False)
     
     machine_inventory_num = db.Column(     # Добавляем поле для инвентарного номера и указываем его как внешний ключ
