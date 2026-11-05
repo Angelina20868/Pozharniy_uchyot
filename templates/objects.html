@@ -3,10 +3,21 @@
 {% block title %}{{ table_name|capitalize }} · Database Viewer{% endblock %}
 
 {% block content %}
+
+{% set table_names = {
+    'user': 'Сотрудники',
+    'divisions': 'Подразделения',
+    'usersAttestations': 'Аттестация сотрудников',
+    'vacations': 'Отпуска',
+    'technical_maintenance': 'Техобслуживание',
+    'machines_property': 'Автомобильный парк',
+    'forces_resources': 'Силовые ресурсы'
+} %}
+
 <div class="container mt-4">
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Таблица: {{ table_name|capitalize }}</h2>
+        <<h2>Таблица: {{ table_names.get(table_name, table_name|capitalize) }}</h2>
         <a href="{{ url_for('main.index') }}" class="btn btn-secondary">← На главную</a>
     </div>
 

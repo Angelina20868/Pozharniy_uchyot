@@ -21,9 +21,9 @@ TABLE_MAP = {
 
 # Какие access_level могут редактировать каждую таблицу
 EDIT_PERMISSIONS = {
-    'user': [1, 2], 'machines_property': [1, 2], 'technical_maintenance': [1, 2],
-    'attestations': [1, 2], 'usersAttestations': [1, 2], 'divisions': [1],
-    'usersAtDivisions': [1], 'vacations': [1, 2, 3], 'forces_resources': [1, 2],
+    'user': [1,3], 'machines_property': [1,2], 'technical_maintenance': [1,2],
+    'usersAttestations': [1, 3], 'divisions': [1],
+    'usersAtDivisions': [1], 'vacations': [3], 'forces_resources': [2],
 }
 
 def can_edit(table_name):
