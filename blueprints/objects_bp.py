@@ -4,7 +4,7 @@ from sqlalchemy import select, func, outerjoin
 from collections import defaultdict
 from datetime import datetime
 from models import (
-    db, User, Divisions, UsersAtDivisions, UsersAttestations, 
+    db, User, Registered_Users, Divisions, UsersAtDivisions, UsersAttestations, 
     Vacations, Machines_Property, Technical_Maintenance, Forces_resources
 )
 
@@ -194,6 +194,12 @@ def delete_item(table_name, item_id):
     item = db.session.get(model, item_id)
     if item:
         try:
+            # Если удаляемая запись - это сотрудник (User), 
+            # то предварительно удаляем его данные для входа из Registered_Users
+            if isinstance(item, User):
+                reg_user = Registered_Users.query.filter_by(username=item.user_login).first()
+                if reg_user:
+                    db.session.delete(reg_user)
             db.session.delete(item)
             db.session.commit()
             flash('Запись удалена.', 'success')
