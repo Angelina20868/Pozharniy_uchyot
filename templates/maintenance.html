@@ -1,44 +1,55 @@
 {% extends "base.html" %}
-
 {% block title %}Техническое обслуживание · Database Viewer{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Журнал технического обслуживания</h1>
-        <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
-            ← На главную
-        </a>
-    </div>
+<h1>Журнал технического обслуживания</h1>
 
-    {% if maintenance_records %}
-    <table class="table table-striped table-hover table-bordered">
-        <thead class="table-dark">
-            <tr>
-                <th>ID ТО</th>
-                <th>Статус</th>
-                <th>Инвентарный номер</th>
-                <th>Модель машины</th>
-                <th>Осмотр провёл</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in maintenance_records %}
-            <tr>
-                <td>{{ record.id }}</td>
-                <td>{{ record.status }}</td>
-                <td>{{ record.machine.inventory_num }}</td>
-                <td>{{ record.machine.model_name }}</td>
-                <td>{{ record.checked_user.full_name if record.checked_user else '—' }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <p class="text-muted">Всего записей: {{ maintenance_records|length }}</p>
-    {% else %}
-    <div class="alert alert-info">
-        Записей пока нет.
-    </div>
-    {% endif %}
-</div>
+<p>
+  <a href="{{ url_for('main.index') }}">← На главную</a>
+  {% if can_edit %}
+    | <a href="{{ url_for('objects.add_item', table_name='technical_maintenance') }}">+ Добавить запись</a>
+  {% endif %}
+</p>
+
+{% if maintenance_records %}
+<table>
+  <thead>
+    <tr>
+      <th>ID ТО</th>
+      <th>Статус</th>
+      <th>Инвентарный номер</th>
+      <th>Модель машины</th>
+      <th>Осмотр провёл</th>
+      {% if can_edit %}
+      <th>Действия</th>
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for record in maintenance_records %}
+    <tr>
+      <td>{{ record.id }}</td>
+      <td>{{ record.status }}</td>
+      <td>{{ record.machine.inventory_num }}</td>
+      <td>{{ record.machine.model_name }}</td>
+      <td>{{ record.checked_user.full_name if record.checked_user else '—' }}</td>
+      {% if can_edit %}
+      <td>
+        <a href="{{ url_for('objects.edit_item', table_name='technical_maintenance', item_id=record.id) }}">Редактировать</a>
+        <form action="{{ url_for('objects.delete_item', table_name='technical_maintenance', item_id=record.id) }}" method="post" style="display:inline;">
+          <button type="submit" onclick="return confirm('Удалить запись?');">Удалить</button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<p>Всего записей: {{ maintenance_records|length }}</p>
+
+{% else %}
+<p>Записей пока нет.</p>
+{% endif %}
+
 {% endblock %}

@@ -33,13 +33,6 @@ def can_edit(table_name):
     access = current_user.access_level
     return access in EDIT_PERMISSIONS.get(table_name, [])
 
-@objects_bp.route('/maintenance')
-def show_maintenance():
-    # Получаем данные из БД одним запросом (чтобы избежать проблемы N+1)
-    records = db.session.query(Technical_Maintenance).all()
-    
-    # Передаем список записей в HTML-шаблон под именем 'maintenance_records'
-    return render_template('maintenance.html', maintenance_records=records)
 
 @objects_bp.route('/<table_name>')
 @login_required
@@ -112,18 +105,80 @@ def objects(table_name):
                                divisions_data=divisions_data.values(),
                                can_edit=editable)
     
-    # ===== Остальные таблицы: обычный SELECT * FROM table =====
-    # Эквивалент SQL: SELECT * FROM <table>
-    stmt = select(model)
-    items = db.session.execute(stmt).scalars().all()
-    columns = [col.name for col in model.__table__.columns if col.name != 'id']
+    else:
+        # ===== Остальные таблицы: обычный SELECT * FROM table =====
+        # Эквивалент SQL: SELECT * FROM <table>
+        stmt = select(model)
+        items = db.session.execute(stmt).scalars().all()
+        columns = [col.name for col in model.__table__.columns if col.name != 'id']
 
-    # ВАЖНО: передаем can_edit в шаблон!
-    return render_template('objects.html',
+        # ВАЖНО: передаем can_edit в шаблон!
+        return render_template('objects.html',
                            table_name=table_name,
                            items=items,
                            columns=columns,
                            can_edit=can_edit(table_name)) # <--- ДОБАВЛЕНО
+
+
+@objects_bp.route('/technical_maintenance/add', methods=['GET', 'POST'])
+@login_required
+def add_technical_maintenance():
+    if not can_edit('technical_maintenance'):
+        flash('Нет прав для добавления записи', 'danger')
+        return redirect(url_for('main.index'))
+    
+    if request.method == 'POST':
+        # Получаем данные из формы
+        status = request.form.get('status')
+        machine_inventory_num = request.form.get('machine_inventory_num')
+        checked_by = request.form.get('checked_by')
+        
+        # Валидация
+        if not status or not machine_inventory_num or not checked_by:
+            flash('Все поля обязательны для заполнения', 'danger')
+            return redirect(url_for('objects.add_technical_maintenance'))
+        
+        try:
+            # Проверяем, что машина существует
+            machine = Machines_Property.query.filter_by(inventory_num=int(machine_inventory_num)).first()
+            if not machine:
+                flash(f'Машина с инвентарным номером {machine_inventory_num} не найдена', 'danger')
+                return redirect(url_for('objects.add_technical_maintenance'))
+            
+            # Проверяем, что пользователь существует
+            user = User.query.filter_by(id=int(checked_by)).first()
+            if not user:
+                flash(f'Пользователь с ID {checked_by} не найден', 'danger')
+                return redirect(url_for('objects.add_technical_maintenance'))
+            
+            # Создаём запись
+            new_record = Technical_Maintenance(
+                checked_by=int(checked_by),
+                status=status,
+                machine_inventory_num=int(machine_inventory_num)
+            )
+            
+            db.session.add(new_record)
+            db.session.commit()
+            flash('Запись ТО успешно добавлена', 'success')
+            return redirect(url_for('objects.objects', table_name='technical_maintenance'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при сохранении: {str(e)}', 'danger')
+            return redirect(url_for('objects.add_technical_maintenance'))
+    
+    # GET-запрос: показываем форму
+    # Получаем списки для выпадающих меню
+    users = User.query.order_by(User.full_name).all()
+    machines = Machines_Property.query.order_by(Machines_Property.inventory_num).all()
+    
+    return render_template(
+        'add_technical_maintenance.html',
+        users=users,
+        machines=machines
+    )
+
 
 # --- ФУНКЦИИ CRUD (ДОБАВЛЕНО, ЧТОБЫ ШАБЛОН НЕ ПАДАЛ) ---
 

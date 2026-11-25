@@ -23,11 +23,16 @@
 
     {# ---------- Кнопка «Добавить» (только если есть права) ---------- #}
     {% if can_edit %}
-    <a href="{{ url_for('objects.add_item', table_name=table_name) }}"
-       class="btn btn-success mb-3">
+    {% if table_name == 'technical_maintenance' %}
+    <a href="{{ url_for('objects.add_technical_maintenance') }}" class="btn btn-success mb-3">
+        + Добавить новую строку
+    </a>
+    {% else %}
+    <a href="{{ url_for('objects.add_item', table_name=table_name) }}" class="btn btn-success mb-3">
         + Добавить новую строку
     </a>
     {% endif %}
+{% endif %}
 
     {% if items %}
     <div class="table-responsive">
@@ -46,12 +51,20 @@
                 </tr>
             </thead>
             <tbody>
-                {% for item in items %}
-                <tr>
-                    <td>{{ item.id }}</td>
-                    {% for column in columns %}
-                    <td>{{ item[column] }}</td>
-                    {% endfor %}
+               {% for item in items %}
+            <tr>
+                <td>{{ item.id }}</td>
+                {% for column in columns %}
+                <td>
+                    {# Универсальное получение значения: работает и для словарей, и для объектов #}
+                    {% if item is mapping %}
+                        {{ item.get(column, '') }}
+                    {% else %}
+                        {{ item[column] if item[column] is not none else '' }}
+                    {% endif %}
+                </td>
+                {% endfor %}
+
 
                     {% if can_edit %}
                     <td class="text-nowrap">

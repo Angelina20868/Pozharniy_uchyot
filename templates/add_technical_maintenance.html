@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Добавить запись ТО{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Добавить запись технического обслуживания</h1>
+        <a href="{{ url_for('objects.objects', table_name='technical_maintenance') }}" class="btn btn-secondary">
+            ← Назад к таблице
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="checked_by" class="form-label">Осмотр провёл (сотрудник)</label>
+                    <select name="checked_by" id="checked_by" class="form-select" required>
+                        <option value="">-- Выберите сотрудника --</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.full_name }} (ID: {{ user.id }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="status" class="form-label">Статус</label>
+                    <select name="status" id="status" class="form-select" required>
+                        <option value="">-- Выберите статус --</option>
+                        <option value="Исправно">Исправно</option>
+                        <option value="Требует ремонта">Требует ремонта</option>
+                        <option value="Неисправно">Неисправно</option>
+                        <option value="На обслуживании">На обслуживании</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="machine_inventory_num" class="form-label">Машина (инвентарный номер)</label>
+                    <select name="machine_inventory_num" id="machine_inventory_num" class="form-select" required>
+                        <option value="">-- Выберите машину --</option>
+                        {% for machine in machines %}
+                        <option value="{{ machine.inventory_num }}">
+                            {{ machine.model_name }} (инв. №{{ machine.inventory_num }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

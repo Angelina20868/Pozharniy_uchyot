@@ -5,7 +5,6 @@ from datetime import date
 
 db = SQLAlchemy()
 
-
 # ---------- Пользователи для входа ----------
 class Registered_Users(UserMixin, db.Model):
     __tablename__ = 'registered_users'
